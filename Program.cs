@@ -5,12 +5,16 @@ namespace MiniHttpServer
 {
     public interface ITimeService
     {
-        string GetCurrentTime();
+        Task<string> GetCurrentTimeAsync();
     }
 
     public class TimeService : ITimeService
     {
-        public string GetCurrentTime() => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        public async Task<string> GetCurrentTimeAsync()
+        {
+            await Task.Delay(100); // Имитация асинхронной работы (например, запрос к БД)
+            return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        }
     }
 
     public class CreateUserDto
@@ -30,16 +34,17 @@ namespace MiniHttpServer
         }
 
         [HttpGet("time")]
-        public void GetTime(HttpResponse response)
+        public async Task GetTime(HttpResponse response)
         {
-            response.SendJson(new { server_time = _timeService.GetCurrentTime() });
+            var time = await _timeService.GetCurrentTimeAsync();
+            response.SendJson(new { server_time = time });
         }
 
-        [HttpGet("greet")]
-        public void Greet(string name, HttpResponse response)
+        // Демонстрация извлечения параметра {id} из пути
+        [HttpGet("users/{id}")]
+        public void GetUserById(int id, HttpResponse response)
         {
-            string userName = string.IsNullOrEmpty(name) ? "Гость" : name;
-            response.SendJson(new { message = $"Привет, {userName}!" });
+            response.SendJson(new { user_id = id, message = $"Поиск пользователя с ID {id}" });
         }
 
         [HttpPost("users")]
@@ -58,7 +63,7 @@ namespace MiniHttpServer
         static async Task Main(string[] args)
         {
             var services = new ServiceCollection();
-            services.AddTransient<ITimeService, TimeService>();
+            services.AddSingleton<ITimeService, TimeService>();
             services.AddTransient<SampleController, SampleController>();
 
             var serviceProvider = services.BuildServiceProvider();
